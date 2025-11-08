@@ -156,7 +156,7 @@ def main():
     parser = argparse.ArgumentParser(description="Generate student strips (cards) PDF from Excel.")
     parser.add_argument("--excel", required=True, help="Path to input .xlsx file (first sheet used).")
     parser.add_argument("--pdf", required=True, help="Output PDF path.")
-    parser.add_argument("--font", default="", help="Path to a TTF font that supports Chinese (e.g., SimHei/SourceHanSans).")
+    parser.add_argument("--font", default="./simsun.ttc", help="Path to a TTF font that supports Chinese (e.g., SimHei/SourceHanSans).")
     parser.add_argument("--title", default="学生成绩小分条", help="Optional document title to place on the first page header.")
     parser.add_argument("--card_title", default="期中英语", help="Card title displayed in top-right corner of each card.")
     parser.add_argument("--cols", type=int, default=2, help="Number of cards per row.")
