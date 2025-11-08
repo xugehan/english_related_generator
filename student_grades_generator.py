@@ -80,6 +80,7 @@ def draw_card(
     kv_middle: List[Tuple[str, str]],
     kv_right: List[Tuple[str, str]],
     font: str,
+    card_title: str = "",
     title_font_size: int = 14,
     body_font_size: int = 10,
     corner_radius: int = 10,
@@ -99,10 +100,18 @@ def draw_card(
     inner_margin = 10
     title_y = y + h - inner_margin - title_font_size
 
-    # Title (student name, clsss and code)
+    # Title (student name, clsss and code) - left side
     c.setFont(font, title_font_size)
     c.setFillColorRGB(0.12, 0.18, 0.35)
     c.drawString(x + inner_margin, title_y, f"{name} {code}")
+
+    # Card title - right side, smaller font
+    if card_title:
+        card_title_font_size = title_font_size - 2
+        c.setFont(font, card_title_font_size)
+        c.setFillColorRGB(0.12, 0.18, 0.35)
+        title_width = c.stringWidth(card_title, font, card_title_font_size)
+        c.drawString(x + w - inner_margin - title_width, title_y, card_title)
 
     # Divider line under title
     c.setStrokeColorRGB(0.75, 0.8, 0.95)
@@ -151,6 +160,7 @@ def main():
     parser.add_argument("--pdf", required=True, help="Output PDF path.")
     parser.add_argument("--font", default="", help="Path to a TTF font that supports Chinese (e.g., SimHei/SourceHanSans).")
     parser.add_argument("--title", default="学生成绩小分条", help="Optional document title to place on the first page header.")
+    parser.add_argument("--card_title", default="期中英语", help="Card title displayed in top-right corner of each card.")
     parser.add_argument("--cols", type=int, default=2, help="Number of cards per row.")
     parser.add_argument("--rows", type=int, default=4, help="Number of card rows per page.")
     parser.add_argument("--portrait", action="store_true", help="Use portrait A4 (default is landscape).")
@@ -266,6 +276,7 @@ def main():
             kv_middle=middle,
             kv_right=right,
             font=font_name,
+            card_title=args.card_title,
             title_font_size=10,
             body_font_size=body_font_size,
             corner_radius=10,
