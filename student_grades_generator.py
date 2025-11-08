@@ -13,12 +13,10 @@ Example:
 """
 
 import argparse
-import math
 import os
 from typing import List, Tuple
 
 import pandas as pd
-from reportlab.lib import colors
 from reportlab.lib.pagesizes import A4, landscape, portrait
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
@@ -82,6 +80,7 @@ def draw_card(
     font: str,
     card_title: str = "",
     title_font_size: int = 14,
+    card_title_font_size: int = 12,
     body_font_size: int = 10,
     corner_radius: int = 10,
 ):
@@ -107,7 +106,6 @@ def draw_card(
 
     # Card title - right side, smaller font
     if card_title:
-        card_title_font_size = title_font_size - 2
         c.setFont(font, card_title_font_size)
         c.setFillColorRGB(0.12, 0.18, 0.35)
         title_width = c.stringWidth(card_title, font, card_title_font_size)
@@ -167,6 +165,9 @@ def main():
     parser.add_argument("--card_h", type=float, default=140, help="Card height in points.")
     parser.add_argument("--margin", type=float, default=36, help="Page margin in points (1/2 inch ≈ 36).")
     parser.add_argument("--gutter", type=float, default=16, help="Horizontal/vertical space between cards in points.")
+    parser.add_argument("--title_font_size", type=int, default=10, help="Font size for student name/code in card title.")
+    parser.add_argument("--card_title_font_size", type=int, default=8, help="Font size for card title (top-right corner).")
+    parser.add_argument("--body_font_size", type=int, default=8, help="Font size for card body text.")
     args = parser.parse_args()
 
     # Page size
@@ -238,8 +239,7 @@ def main():
     detail_cols = [cn for cn in df.columns if (not isinstance(cn, str)) or (cn != name_col and cn != code_col and cn != class_col)]
 
     # Estimate lines per column based on card height
-    body_font_size = 8
-    line_height = body_font_size + 4
+    line_height = args.body_font_size + 4
     approx_lines_body = int((card_h - 36) // line_height)  # 36 ~ title+spacing
     max_each_col = max(1, approx_lines_body)
 
@@ -277,8 +277,9 @@ def main():
             kv_right=right,
             font=font_name,
             card_title=args.card_title,
-            title_font_size=10,
-            body_font_size=body_font_size,
+            title_font_size=args.title_font_size,
+            card_title_font_size=args.card_title_font_size,
+            body_font_size=args.body_font_size,
             corner_radius=10,
         )
 
