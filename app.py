@@ -75,6 +75,52 @@ except Exception as e:
 
 st.markdown("---")
 
+# Column selection
+st.header("📝 选择要显示的列")
+st.caption("勾选需要在PDF中显示的成绩项目（姓名、学号、班级会自动显示）")
+
+# Find name, code, and class columns
+code_col_candidates = [c for c in df.columns if str(c).strip() in ("学号", "学号/Code", "code", "Code")]
+code_col = code_col_candidates[0] if code_col_candidates else df.columns[0]
+
+name_col_candidates = [c for c in df.columns if str(c).strip() in ("姓名", "姓名/Name", "name", "Name")]
+name_col = name_col_candidates[0] if name_col_candidates else df.columns[1]
+
+class_col_candidates = [c for c in df.columns if str(c).strip() in ("班级", "班级/Class", "class", "Class")]
+class_col = class_col_candidates[0] if class_col_candidates else df.columns[2]
+
+# Get all columns except name, code, and class
+detail_cols_all = [cn for cn in df.columns if (not isinstance(cn, str)) or (cn != name_col and cn != code_col and cn != class_col)]
+
+# Create checkboxes for each column
+if detail_cols_all:
+    # Display in multiple columns for better layout
+    num_checkbox_cols = min(4, len(detail_cols_all))
+    checkbox_cols = st.columns(num_checkbox_cols)
+
+    selected_columns = {}
+    for idx, col_name in enumerate(detail_cols_all):
+        col_idx = idx % num_checkbox_cols
+        with checkbox_cols[col_idx]:
+            selected_columns[col_name] = st.checkbox(
+                str(col_name),
+                value=True,
+                key=f"col_select_{idx}"
+            )
+
+    # Filter selected columns
+    detail_cols = [col for col in detail_cols_all if selected_columns.get(col, True)]
+
+    st.caption(f"已选择 {len(detail_cols)} / {len(detail_cols_all)} 个项目")
+
+    if len(detail_cols) == 0:
+        st.warning("⚠️ 请至少选择一个项目")
+else:
+    detail_cols = []
+    st.info("除了姓名、学号、班级外，没有其他可选列")
+
+st.markdown("---")
+
 # Configuration columns
 col1, col2 = st.columns(2)
 
@@ -213,15 +259,10 @@ if st.button("🎨 生成PDF", type="primary", use_container_width=True):
                 font_path = "./simsun.ttc"
             font_name = try_register_font(font_path, "CNFont")
 
-            # Find name, code, and class columns
-            code_col_candidates = [c for c in df.columns if str(c).strip() in ("学号", "学号/Code", "code", "Code")]
-            code_col = code_col_candidates[0] if code_col_candidates else df.columns[0]
-
-            name_col_candidates = [c for c in df.columns if str(c).strip() in ("姓名", "姓名/Name", "name", "Name")]
-            name_col = name_col_candidates[0] if name_col_candidates else df.columns[1]
-
-            class_col_candidates = [c for c in df.columns if str(c).strip() in ("班级", "班级/Class", "class", "Class")]
-            class_col = class_col_candidates[0] if class_col_candidates else df.columns[2]
+            # Check if user selected any columns
+            if len(detail_cols) == 0:
+                st.error("❌ 请至少选择一个项目")
+                st.stop()
 
             # Create canvas
             c = canvas.Canvas(output_pdf, pagesize=(page_w, page_h))
@@ -248,9 +289,7 @@ if st.button("🎨 生成PDF", type="primary", use_container_width=True):
             page_idx = 1
             draw_header(page_idx)
 
-            # Exclude name, code, class from detail columns
-            detail_cols = [cn for cn in df.columns if (not isinstance(cn, str)) or (cn != name_col and cn != code_col and cn != class_col)]
-
+            # Use the detail_cols selected by user (already defined above)
             # Estimate lines per column
             line_height = body_font_size + 4
             approx_lines_body = int((card_h - 36) // line_height)
