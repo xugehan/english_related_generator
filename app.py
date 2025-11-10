@@ -23,7 +23,31 @@ st.markdown("---")
 
 # Sidebar for file uploads
 with st.sidebar:
-    st.header("📁 文件上传")
+    st.header("📥 下载模板")
+
+    # Template download
+    template_file = "template.xlsx"
+    if os.path.exists(template_file):
+        with open(template_file, "rb") as template:
+            template_data = template.read()
+
+        st.download_button(
+            label="⬇️ 下载Excel模板",
+            data=template_data,
+            file_name="学生成绩模板.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            help="下载此模板，按照模板格式填写学生成绩数据",
+            use_container_width=True
+        )
+        st.info("📋 **模板使用说明**：  \n"
+               "• 必须保持：**姓名**、**学号** 两列  \n"
+               "• 可以修改：其他项目列可自由添加、删除或重命名  \n"
+               "• 模板包含3行示例数据供参考")
+    else:
+        st.warning("⚠️ 模板文件不存在")
+
+    st.markdown("---")
+    st.header("📁 上传文件")
 
     uploaded_excel = st.file_uploader(
         "上传Excel文件",
@@ -42,11 +66,19 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### 💡 使用说明")
     st.markdown("""
-    1. 上传包含学生成绩的Excel文件
-    2. （可选）上传中文字体文件
-    3. 在右侧调整各项参数
-    4. 点击"生成PDF"按钮
-    5. 下载生成的PDF文件
+    1. **下载模板**（首次使用）
+       - 点击"下载Excel模板"按钮
+       - 按照模板格式填写学生数据
+    2. **上传文件**
+       - 上传填好的Excel文件
+       - （可选）上传中文字体文件
+    3. **选择列**
+       - 勾选需要显示的成绩项目
+    4. **调整参数**
+       - 设置标题、布局、字号等
+    5. **生成PDF**
+       - 点击"生成PDF"按钮
+       - 下载生成的PDF文件
     """)
 
 # Main content area
@@ -77,7 +109,7 @@ st.markdown("---")
 
 # Column selection
 st.header("📝 选择要显示的列")
-st.caption("勾选需要在PDF中显示的成绩项目（姓名、学号、班级会自动显示）")
+st.caption("勾选需要在PDF中显示的成绩项目（姓名、学号会自动显示）")
 
 # Find name, code, and class columns
 code_col_candidates = [c for c in df.columns if str(c).strip() in ("学号", "学号/Code", "code", "Code")]
