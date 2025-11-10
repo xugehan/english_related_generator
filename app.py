@@ -57,9 +57,18 @@ if uploaded_excel is None:
 # Preview Excel data
 st.header("📊 数据预览")
 try:
-    df = pd.read_excel(uploaded_excel, engine="openpyxl")
+    # Detect file extension and use appropriate engine
+    file_ext = os.path.splitext(uploaded_excel.name)[1].lower()
+    if file_ext == '.xls':
+        df = pd.read_excel(uploaded_excel, engine="xlrd")
+    elif file_ext == '.xlsx':
+        df = pd.read_excel(uploaded_excel, engine="openpyxl")
+    else:
+        # Try openpyxl as default
+        df = pd.read_excel(uploaded_excel, engine="openpyxl")
+
     st.dataframe(df.head(10), use_container_width=True)
-    st.caption(f"共 {len(df)} 条记录")
+    st.caption(f"共 {len(df)} 条记录，文件格式: {file_ext}")
 except Exception as e:
     st.error(f"读取Excel文件失败: {str(e)}")
     st.stop()

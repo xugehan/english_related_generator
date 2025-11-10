@@ -180,8 +180,16 @@ def main():
     # Register font
     font_name = try_register_font(args.font)
 
-    # Read Excel
-    df = pd.read_excel(args.excel, engine="openpyxl")
+    # Read Excel - automatically detect engine based on file extension
+    file_ext = os.path.splitext(args.excel)[1].lower()
+    if file_ext == '.xls':
+        df = pd.read_excel(args.excel, engine="xlrd")
+    elif file_ext == '.xlsx':
+        df = pd.read_excel(args.excel, engine="openpyxl")
+    else:
+        # Try openpyxl as default
+        df = pd.read_excel(args.excel, engine="openpyxl")
+
     if df.empty:
         raise ValueError("The Excel sheet is empty.")
 
