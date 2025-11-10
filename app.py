@@ -154,7 +154,7 @@ else:
 st.markdown("---")
 
 # Configuration columns
-col1, col2 = st.columns(2)
+col1, col2 = st.columns([1, 1])
 
 with col1:
     st.header("⚙️ 基本设置")
@@ -223,8 +223,8 @@ with col1:
         help="卡片之间的间隔"
     )
 
-with col2:
-    st.header("🔤 字体设置")
+    st.markdown("---")
+    st.subheader("🔤 字体设置")
 
     title_font_size = st.slider(
         "人名/学号字号",
@@ -250,9 +250,8 @@ with col2:
         help="卡片正文内容的字体大小"
     )
 
-    st.markdown("---")
-
-    st.subheader("📋 PDF预览")
+with col2:
+    st.header("📋 PDF预览")
     st.caption("参数变化时自动更新预览")
 
     # Generate preview automatically using generate_pdf function
