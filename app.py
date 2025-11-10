@@ -8,9 +8,9 @@ import streamlit as st
 import pandas as pd
 import os
 import tempfile
-from student_grades_generator import try_register_font, format_value, split_columns_evenly, draw_card
+from io import BytesIO
+from student_grades_generator import generate_pdf
 from reportlab.lib.pagesizes import A4, landscape, portrait
-from reportlab.pdfgen import canvas
 
 st.set_page_config(
     page_title="学生成绩小分条生成器",
@@ -252,15 +252,99 @@ with col2:
 
     st.markdown("---")
 
-    st.subheader("📋 当前配置摘要")
-    st.json({
-        "文档标题": title,
-        "卡片标题": card_title,
-        "页面方向": orientation,
-        "布局": f"{cols}列 × {rows}行",
-        "卡片高度": f"{card_h}点",
-        "字号": f"人名{title_font_size}/标题{card_title_font_size}/正文{body_font_size}"
-    })
+    st.subheader("📋 PDF预览")
+    st.caption("参数变化时自动更新预览")
+
+    # Generate preview automatically using generate_pdf function
+    with st.spinner("正在生成预览..."):
+        try:
+            # Prepare font path
+            font_path = ""
+            if uploaded_font is not None:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_font.name)[1]) as tmp_font:
+                    tmp_font.write(uploaded_font.getvalue())
+                    font_path = tmp_font.name
+            if font_path == "":
+                font_path = "./simsun.ttc"
+
+            # Create temporary PDF for preview
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
+                tmp_pdf_path = tmp_pdf.name
+
+            # Calculate cards per page for display
+            page_w, page_h = A4
+            if orientation == "纵向":
+                page_w, page_h = portrait(A4)
+            else:
+                page_w, page_h = landscape(A4)
+            usable_w = page_w - 2 * margin
+            usable_h = page_h - 2 * margin
+            card_w = (usable_w - (cols - 1) * gutter) / cols
+            max_rows_fit = max(1, int((usable_h + gutter) // (card_h + gutter)))
+            actual_rows = min(rows, max_rows_fit)
+            cards_per_page = cols * actual_rows
+
+            # Use generate_pdf function for preview
+            generate_pdf(
+                df=df,
+                output_path=tmp_pdf_path,
+                font_path=font_path,
+                title=title,
+                card_title=card_title,
+                cols=cols,
+                rows=rows,
+                portrait_mode=(orientation == "纵向"),
+                card_h=card_h,
+                margin=margin,
+                gutter=gutter,
+                title_font_size=title_font_size,
+                card_title_font_size=card_title_font_size,
+                body_font_size=body_font_size,
+                detail_cols=detail_cols,
+                preview_only=True,
+                max_preview_cards=cards_per_page
+            )
+
+            # Convert PDF to image using PyMuPDF (fitz)
+            try:
+                import fitz  # PyMuPDF
+                from PIL import Image
+
+                # Open PDF with PyMuPDF
+                pdf_doc = fitz.open(tmp_pdf_path)
+                page = pdf_doc[0]  # Get first page
+
+                # Render page to image (2.0 = 144 DPI)
+                mat = fitz.Matrix(2.0, 2.0)
+                pix = page.get_pixmap(matrix=mat)
+
+                # Convert to PIL Image
+                img_data = pix.tobytes("png")
+                img = Image.open(BytesIO(img_data))
+
+                # Display the preview image
+                st.image(img, caption=f"预览：{cols}列 × {actual_rows}行布局", use_container_width=True)
+                st.caption(f"💡 实际生成时将包含 {len(df)} 条记录")
+
+                # Close PDF
+                pdf_doc.close()
+
+            except ImportError:
+                st.warning("⚠️ 预览功能需要安装 PyMuPDF 库  \n运行: `pip install PyMuPDF`")
+                st.info(f"📊 布局信息：  \n- 页面方向：{orientation}  \n- 每页卡片：{cols}列 × {actual_rows}行 = {cards_per_page}张  \n- 卡片尺寸：{card_w:.1f} × {card_h:.1f} 点")
+            except Exception as preview_error:
+                st.error(f"预览转换失败: {str(preview_error)}")
+                st.info(f"📊 布局信息：  \n- 页面方向：{orientation}  \n- 每页卡片：{cols}列 × {actual_rows}行 = {cards_per_page}张  \n- 卡片尺寸：{card_w:.1f} × {card_h:.1f} 点")
+
+            # Cleanup
+            if os.path.exists(tmp_pdf_path):
+                os.unlink(tmp_pdf_path)
+            if uploaded_font is not None and font_path and os.path.exists(font_path):
+                os.unlink(font_path)
+
+        except Exception as e:
+            st.error(f"生成预览失败: {str(e)}")
+            st.info(f"📊 布局信息：\n- 页面方向：{orientation}\n- 布局：{cols}列 × {rows}行\n- 卡片高度：{card_h}点")
 
 st.markdown("---")
 
@@ -268,114 +352,44 @@ st.markdown("---")
 if st.button("🎨 生成PDF", type="primary", use_container_width=True):
     with st.spinner("正在生成PDF，请稍候..."):
         try:
-            # Save uploaded font to temp file if provided
-            font_path = ""
-            if uploaded_font is not None:
-                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_font.name)[1]) as tmp_font:
-                    tmp_font.write(uploaded_font.getvalue())
-                    font_path = tmp_font.name
-
-            # Create output PDF in temp file
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
-                output_pdf = tmp_pdf.name
-
-            # Page size
-            page_w, page_h = A4
-            if orientation == "纵向":
-                page_w, page_h = portrait(A4)
-            else:
-                page_w, page_h = landscape(A4)
-
-            # Register font
-            if font_path == "":
-                font_path = "./simsun.ttc"
-            font_name = try_register_font(font_path, "CNFont")
-
             # Check if user selected any columns
             if len(detail_cols) == 0:
                 st.error("❌ 请至少选择一个项目")
                 st.stop()
 
-            # Create canvas
-            c = canvas.Canvas(output_pdf, pagesize=(page_w, page_h))
-            c.setTitle(title)
+            # Prepare font path
+            font_path = ""
+            if uploaded_font is not None:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(uploaded_font.name)[1]) as tmp_font:
+                    tmp_font.write(uploaded_font.getvalue())
+                    font_path = tmp_font.name
+            if font_path == "":
+                font_path = "./simsun.ttc"
 
-            # Calculate card dimensions
-            usable_w = page_w - 2 * margin
-            usable_h = page_h - 2 * margin
-            card_w = (usable_w - (cols - 1) * gutter) / cols
+            # Create output PDF in temp file
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp_pdf:
+                output_pdf = tmp_pdf.name
 
-            max_rows_fit = max(1, int((usable_h + gutter) // (card_h + gutter)))
-            actual_rows = min(rows, max_rows_fit)
-            cards_per_page = cols * actual_rows
-
-            # Header function
-            def draw_header(page_idx: int):
-                c.saveState()
-                c.setFont(font_name, 12)
-                c.setFillColorRGB(0.15, 0.15, 0.15)
-                header_y = page_h - margin + 10
-                c.drawString(margin, header_y, f"{title}  —  Page {page_idx}")
-                c.restoreState()
-
-            page_idx = 1
-            draw_header(page_idx)
-
-            # Use the detail_cols selected by user (already defined above)
-            # Estimate lines per column
-            line_height = body_font_size + 4
-            approx_lines_body = int((card_h - 36) // line_height)
-            max_each_col = max(1, approx_lines_body)
-
-            card_count_on_page = 0
-            progress_bar = st.progress(0)
-
-            for idx, row in df.iterrows():
-                name = format_value(row[name_col])
-                class_ = format_value(row[class_col])
-                code = format_value(row[code_col])
-
-                values = [format_value(row[col]) for col in detail_cols]
-                left, middle, right = split_columns_evenly(detail_cols, values, max_each_col)
-
-                pos_in_page = card_count_on_page % cards_per_page
-                r = pos_in_page // cols
-                c_in_row = pos_in_page % cols
-
-                x = margin + c_in_row * (card_w + gutter)
-                top_area = page_h - margin - card_h
-                y = top_area - r * (card_h + gutter)
-
-                draw_card(
-                    c,
-                    x,
-                    y,
-                    card_w,
-                    card_h,
-                    name=name,
-                    class_=class_,
-                    code=code,
-                    kv_left=left,
-                    kv_middle=middle,
-                    kv_right=right,
-                    font=font_name,
-                    card_title=card_title,
-                    title_font_size=title_font_size,
-                    card_title_font_size=card_title_font_size,
-                    body_font_size=body_font_size,
-                    corner_radius=10,
-                )
-
-                card_count_on_page += 1
-                progress_bar.progress((idx + 1) / len(df))
-
-                if (card_count_on_page % cards_per_page) == 0 and idx != len(df) - 1:
-                    c.showPage()
-                    page_idx += 1
-                    draw_header(page_idx)
-
-            c.save()
-            progress_bar.empty()
+            # Use generate_pdf function
+            generate_pdf(
+                df=df,
+                output_path=output_pdf,
+                font_path=font_path,
+                title=title,
+                card_title=card_title,
+                cols=cols,
+                rows=rows,
+                portrait_mode=(orientation == "纵向"),
+                card_h=card_h,
+                margin=margin,
+                gutter=gutter,
+                title_font_size=title_font_size,
+                card_title_font_size=card_title_font_size,
+                body_font_size=body_font_size,
+                detail_cols=detail_cols,
+                preview_only=False,
+                max_preview_cards=None
+            )
 
             # Read PDF and offer download
             with open(output_pdf, "rb") as pdf_file:

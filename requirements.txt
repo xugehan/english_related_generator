@@ -4,6 +4,10 @@ reportlab>=3.6.0
 openpyxl>=3.0.0
 xlrd>=2.0.0
 streamlit>=1.20.0
+
+# Optional: for PDF preview feature
+PyMuPDF>=1.23.0
+pillow>=9.0.0
 Jinja2==3.1.6
 jsonschema==4.25.1
 jsonschema-specifications==2025.9.1

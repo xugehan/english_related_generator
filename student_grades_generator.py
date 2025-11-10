@@ -152,6 +152,160 @@ def draw_card(
     c.restoreState()
 
 
+def generate_pdf(
+    df: pd.DataFrame,
+    output_path: str,
+    font_path: str = "./simsun.ttc",
+    title: str = "学生成绩小分条",
+    card_title: str = "期中英语",
+    cols: int = 2,
+    rows: int = 4,
+    portrait_mode: bool = False,
+    card_h: float = 140,
+    margin: float = 36,
+    gutter: float = 16,
+    title_font_size: int = 10,
+    card_title_font_size: int = 8,
+    body_font_size: int = 8,
+    detail_cols: list = None,
+    preview_only: bool = False,
+    max_preview_cards: int = None
+):
+    """
+    Generate PDF from DataFrame.
+
+    Args:
+        df: DataFrame containing student data
+        output_path: Output PDF file path
+        font_path: Path to TTF/TTC font file
+        title: Document title
+        card_title: Title shown on each card
+        cols: Number of cards per row
+        rows: Number of rows per page
+        portrait_mode: Use portrait orientation
+        card_h: Card height in points
+        margin: Page margin in points
+        gutter: Space between cards in points
+        title_font_size: Font size for name/code
+        card_title_font_size: Font size for card title
+        body_font_size: Font size for body text
+        detail_cols: List of columns to display (if None, auto-detect)
+        preview_only: If True, only render first page with suffix
+        max_preview_cards: Maximum cards to render for preview
+
+    Returns:
+        None
+    """
+    # Page setup
+    page_w, page_h = A4
+    if portrait_mode:
+        page_w, page_h = portrait(A4)
+    else:
+        page_w, page_h = landscape(A4)
+
+    # Register font
+    font_name = try_register_font(font_path)
+
+    # Find name, code, and class columns
+    code_col_candidates = [c for c in df.columns if str(c).strip() in ("学号", "学号/Code", "code", "Code")]
+    code_col = code_col_candidates[0] if code_col_candidates else df.columns[0]
+
+    name_col_candidates = [c for c in df.columns if str(c).strip() in ("姓名", "姓名/Name", "name", "Name")]
+    name_col = name_col_candidates[0] if name_col_candidates else df.columns[1]
+
+    class_col_candidates = [c for c in df.columns if str(c).strip() in ("班级", "班级/Class", "class", "Class")]
+    class_col = class_col_candidates[0] if class_col_candidates else df.columns[2]
+
+    # Auto-detect detail columns if not provided
+    if detail_cols is None:
+        detail_cols = [cn for cn in df.columns if (not isinstance(cn, str)) or (cn != name_col and cn != code_col and cn != class_col)]
+
+    # Canvas
+    c = canvas.Canvas(output_path, pagesize=(page_w, page_h))
+    c.setTitle(title)
+
+    # Calculate card dimensions
+    usable_w = page_w - 2 * margin
+    usable_h = page_h - 2 * margin
+    card_w = (usable_w - (cols - 1) * gutter) / cols
+
+    max_rows_fit = max(1, int((usable_h + gutter) // (card_h + gutter)))
+    actual_rows = min(rows, max_rows_fit)
+    cards_per_page = cols * actual_rows
+
+    # Page header function
+    def draw_header(page_idx: int):
+        c.saveState()
+        c.setFont(font_name, 12)
+        c.setFillColorRGB(0.15, 0.15, 0.15)
+        header_y = page_h - margin + 10
+        suffix = " (预览)" if preview_only else ""
+        c.drawString(margin, header_y, f"{title}  —  Page {page_idx}{suffix}")
+        c.restoreState()
+
+    page_idx = 1
+    draw_header(page_idx)
+
+    # Estimate lines per column
+    line_height = body_font_size + 4
+    approx_lines_body = int((card_h - 36) // line_height)
+    max_each_col = max(1, approx_lines_body)
+
+    # Determine how many cards to render
+    total_cards = len(df)
+    if preview_only and max_preview_cards:
+        total_cards = min(total_cards, max_preview_cards)
+
+    card_count_on_page = 0
+
+    for idx in range(total_cards):
+        row = df.iloc[idx]
+        name = format_value(row[name_col])
+        code = format_value(row[code_col])
+        class_ = format_value(row[class_col]) if class_col in df.columns else ""
+
+        values = [format_value(row[col]) for col in detail_cols]
+        left, middle, right = split_columns_evenly(detail_cols, values, max_each_col)
+
+        pos_in_page = card_count_on_page % cards_per_page
+        r = pos_in_page // cols
+        c_in_row = pos_in_page % cols
+
+        x = margin + c_in_row * (card_w + gutter)
+        top_area = page_h - margin - card_h
+        y = top_area - r * (card_h + gutter)
+
+        draw_card(
+            c,
+            x,
+            y,
+            card_w,
+            card_h,
+            name=name,
+            class_=class_,
+            code=code,
+            kv_left=left,
+            kv_middle=middle,
+            kv_right=right,
+            font=font_name,
+            card_title=card_title,
+            title_font_size=title_font_size,
+            card_title_font_size=card_title_font_size,
+            body_font_size=body_font_size,
+            corner_radius=10,
+        )
+
+        card_count_on_page += 1
+
+        # Page break (only if not preview or not last card)
+        if not preview_only and (card_count_on_page % cards_per_page) == 0 and idx != total_cards - 1:
+            c.showPage()
+            page_idx += 1
+            draw_header(page_idx)
+
+    c.save()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate student strips (cards) PDF from Excel.")
     parser.add_argument("--excel", required=True, help="Path to input .xlsx file (first sheet used).")
@@ -170,15 +324,6 @@ def main():
     parser.add_argument("--body_font_size", type=int, default=8, help="Font size for card body text.")
     args = parser.parse_args()
 
-    # Page size
-    page_w, page_h = A4
-    if args.portrait:
-        page_w, page_h = portrait(A4)
-    else:
-        page_w, page_h = landscape(A4)
-
-    # Register font
-    font_name = try_register_font(args.font)
 
     # Read Excel - automatically detect engine based on file extension
     file_ext = os.path.splitext(args.excel)[1].lower()
@@ -193,115 +338,28 @@ def main():
     if df.empty:
         raise ValueError("The Excel sheet is empty.")
 
-    code_col_candidates = [c for c in df.columns if str(c).strip() in ("学号", "学号/Code", "code", "Code")]
-    if code_col_candidates:
-        code_col = code_col_candidates[0]
-    else:
-        code_col = df.columns[0]
+    # Use generate_pdf function
+    generate_pdf(
+        df=df,
+        output_path=args.pdf,
+        font_path=args.font,
+        title=args.title,
+        card_title=args.card_title,
+        cols=args.cols,
+        rows=args.rows,
+        portrait_mode=args.portrait,
+        card_h=args.card_h,
+        margin=args.margin,
+        gutter=args.gutter,
+        title_font_size=args.title_font_size,
+        card_title_font_size=args.card_title_font_size,
+        body_font_size=args.body_font_size,
+        detail_cols=None,  # Auto-detect
+        preview_only=False,
+        max_preview_cards=None
+    )
 
-    # Ensure there is a '姓名' column (or try to guess)
-    name_col_candidates = [c for c in df.columns if str(c).strip() in ("姓名", "姓名/Name", "name", "Name")]
-    if name_col_candidates:
-        name_col = name_col_candidates[0]
-    else:
-        # Fallback to the first column
-        name_col = df.columns[1]
-
-    class_col_candidates = [c for c in df.columns if str(c).strip() in ("班级", "班级/Class", "class", "Class")]
-    if class_col_candidates:
-        class_col = class_col_candidates[0]
-    else:
-        class_col = df.columns[2]
-
-
-
-    # Canvas
-    c = canvas.Canvas(args.pdf, pagesize=(page_w, page_h))
-    c.setTitle(args.title)
-
-    # Pre-compute card width and positions
-    usable_w = page_w - 2 * args.margin
-    usable_h = page_h - 2 * args.margin
-
-    card_w = (usable_w - (args.cols - 1) * args.gutter) / args.cols
-    card_h = args.card_h
-
-    # How many rows actually fit vertically if user-specified rows * card_h is too tall
-    max_rows_fit = max(1, int((usable_h + args.gutter) // (card_h + args.gutter)))
-    rows = min(args.rows, max_rows_fit)
-    cards_per_page = args.cols * rows
-
-    # Page header
-    def draw_header(page_idx: int):
-        c.saveState()
-        c.setFont(font_name, 12)
-        c.setFillColorRGB(0.15, 0.15, 0.15)
-        header_y = page_h - args.margin + 10
-        c.drawString(args.margin, header_y, f"{args.title}  —  Page {page_idx}")
-        c.restoreState()
-
-    page_idx = 1
-    draw_header(page_idx)
-
-    # Exclude the name column from detail list
-    detail_cols = [cn for cn in df.columns if (not isinstance(cn, str)) or (cn != name_col and cn != code_col and cn != class_col)]
-
-    # Estimate lines per column based on card height
-    line_height = args.body_font_size + 4
-    approx_lines_body = int((card_h - 36) // line_height)  # 36 ~ title+spacing
-    max_each_col = max(1, approx_lines_body)
-
-    card_count_on_page = 0
-    for idx, row in df.iterrows():
-        name = format_value(row[name_col])
-        class_ = format_value(row[class_col])
-        code = format_value(row[code_col])
-
-        # Prepare left/right column key-values
-        values = [format_value(row[col]) for col in detail_cols]
-        left, middle, right = split_columns_evenly(detail_cols, values, max_each_col)
-
-        # Compute card position
-        pos_in_page = card_count_on_page % cards_per_page
-        r = pos_in_page // args.cols
-        c_in_row = pos_in_page % args.cols
-
-        x = args.margin + c_in_row * (card_w + args.gutter)
-        # From top to bottom: convert row index to y
-        top_area = page_h - args.margin - card_h
-        y = top_area - r * (card_h + args.gutter)
-
-        draw_card(
-            c,
-            x,
-            y,
-            card_w,
-            card_h,
-            name=name,
-            class_=class_,
-            code=code,
-            kv_left=left,
-            kv_middle=middle,
-            kv_right=right,
-            font=font_name,
-            card_title=args.card_title,
-            title_font_size=args.title_font_size,
-            card_title_font_size=args.card_title_font_size,
-            body_font_size=args.body_font_size,
-            corner_radius=10,
-        )
-
-        card_count_on_page += 1
-
-        # New page if filled
-        if (card_count_on_page % cards_per_page) == 0 and idx != len(df) - 1:
-            c.showPage()
-            page_idx += 1
-            draw_header(page_idx)
-
-    # Finish
-    c.save()
-    print(f"[OK] PDF saved to: {args.pdf}")
+    print(f"[Done] Generated {args.pdf}")
 
 
 if __name__ == "__main__":
