@@ -14,7 +14,7 @@ pip install pandas reportlab openpyxl streamlit
 
 1. 启动Streamlit应用：
 ```bash
-streamlit run app.py
+streamlit run 主页.py
 ```
 或者使用启动脚本：
 ```bash
