@@ -24,8 +24,6 @@ pip install pandas reportlab openpyxl streamlit
 - ✅ 支持本地和内网IP访问
 - ✅ 远程访问自动拒绝，保护系统安全
 
-详细说明请查看 [日志功能说明.md](./日志功能说明.md)
-
 ## 使用方法
 
 ### 方法1: 图形界面（推荐）✨
