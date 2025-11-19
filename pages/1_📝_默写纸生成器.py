@@ -58,7 +58,7 @@ with col_left:
             "行数",
             min_value=1,
             max_value=5,
-            value=3,
+            value=4,
             help="每页的行数（1-5行）"
         )
 
