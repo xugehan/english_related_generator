@@ -7,6 +7,7 @@ import streamlit as st
 import os
 import tempfile
 from generator import make_chongmo_pdf, generate_preview_image
+from logger_utils import log_dictation_generation
 st.set_page_config(
     page_title="默写纸生成器",
     page_icon="📝",
@@ -165,6 +166,17 @@ with col_btn2:
                     # 读取PDF
                     with open(output_path, "rb") as pdf_file:
                         pdf_data = pdf_file.read()
+
+                    # 记录日志
+                    log_dictation_generation(
+                        date_str=date_str,
+                        scope=scope,
+                        items_count=len(items),
+                        col_num=col_num,
+                        row_num=row_num,
+                        font_size=font_size,
+                        padding=padding
+                    )
 
                     st.success("✅ PDF生成成功！")
 

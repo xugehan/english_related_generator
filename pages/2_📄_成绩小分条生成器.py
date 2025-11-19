@@ -11,6 +11,7 @@ import tempfile
 from io import BytesIO
 from student_grades_generator import generate_pdf
 from reportlab.lib.pagesizes import A4, landscape, portrait
+from logger_utils import log_grades_generation
 
 st.set_page_config(
     page_title="学生成绩小分条生成器",
@@ -393,6 +394,25 @@ if st.button("🎨 生成PDF", type="primary", use_container_width=True):
             # Read PDF and offer download
             with open(output_pdf, "rb") as pdf_file:
                 pdf_data = pdf_file.read()
+
+            # 记录日志
+            log_grades_generation(
+                excel_filename=uploaded_excel.name,
+                title=title,
+                card_title=card_title,
+                orientation=orientation,
+                cols=cols,
+                rows=rows,
+                card_h=card_h,
+                margin=margin,
+                gutter=gutter,
+                title_font_size=title_font_size,
+                card_title_font_size=card_title_font_size,
+                body_font_size=body_font_size,
+                detail_cols=detail_cols,
+                total_records=len(df),
+                has_custom_font=(uploaded_font is not None)
+            )
 
             st.success("✅ PDF生成成功！")
             st.download_button(
