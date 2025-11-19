@@ -12,6 +12,7 @@ from io import BytesIO
 from student_grades_generator import generate_pdf
 from reportlab.lib.pagesizes import A4, landscape, portrait
 from logger_utils import log_grades_generation
+from access_control import get_client_ip
 
 st.set_page_config(
     page_title="学生成绩小分条生成器",
@@ -411,7 +412,8 @@ if st.button("🎨 生成PDF", type="primary", use_container_width=True):
                 body_font_size=body_font_size,
                 detail_cols=detail_cols,
                 total_records=len(df),
-                has_custom_font=(uploaded_font is not None)
+                has_custom_font=(uploaded_font is not None),
+                client_ip=get_client_ip()
             )
 
             st.success("✅ PDF生成成功！")

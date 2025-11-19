@@ -100,7 +100,8 @@ def log_dictation_generation(
     col_num,
     row_num,
     font_size,
-    padding
+    padding,
+    client_ip="unknown"
 ):
     """
     记录默写纸生成日志
@@ -113,9 +114,11 @@ def log_dictation_generation(
         row_num: 行数
         font_size: 字号
         padding: 边距
+        client_ip: 客户端IP地址
     """
     params = {
         "生成时间": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "客户端IP": client_ip,
         "日期": date_str,
         "标题": scope,
         "项目数量": items_count,
@@ -144,7 +147,8 @@ def log_grades_generation(
     body_font_size,
     detail_cols,
     total_records,
-    has_custom_font
+    has_custom_font,
+    client_ip="unknown"
 ):
     """
     记录成绩小分条生成日志
@@ -165,9 +169,11 @@ def log_grades_generation(
         detail_cols: 选择的列
         total_records: 总记录数
         has_custom_font: 是否使用自定义字体
+        client_ip: 客户端IP地址
     """
     params = {
         "生成时间": datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        "客户端IP": client_ip,
         "Excel文件": excel_filename,
         "文档标题": title,
         "卡片标题": card_title,

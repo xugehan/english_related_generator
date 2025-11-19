@@ -8,6 +8,7 @@ import os
 import tempfile
 from generator import make_chongmo_pdf, generate_preview_image
 from logger_utils import log_dictation_generation
+from access_control import get_client_ip
 st.set_page_config(
     page_title="默写纸生成器",
     page_icon="📝",
@@ -161,7 +162,8 @@ with col_btn2:
                         col_num=col_num,
                         row_num=row_num,
                         font_size=font_size,
-                        padding=padding
+                        padding=padding,
+                        client_ip=get_client_ip()
                     )
 
                     st.success("✅ PDF生成成功！")
