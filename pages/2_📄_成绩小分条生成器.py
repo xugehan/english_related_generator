@@ -115,16 +115,16 @@ st.caption("勾选需要在PDF中显示的成绩项目（姓名、学号会自�
 
 # Find name, code, and class columns
 code_col_candidates = [c for c in df.columns if str(c).strip() in ("学号", "学号/Code", "code", "Code")]
-code_col = code_col_candidates[0] if code_col_candidates else df.columns[0]
+code_col = code_col_candidates[0] if code_col_candidates else None
 
 name_col_candidates = [c for c in df.columns if str(c).strip() in ("姓名", "姓名/Name", "name", "Name")]
-name_col = name_col_candidates[0] if name_col_candidates else df.columns[1]
+name_col = name_col_candidates[0] if name_col_candidates else None
 
 class_col_candidates = [c for c in df.columns if str(c).strip() in ("班级", "班级/Class", "class", "Class")]
-class_col = class_col_candidates[0] if class_col_candidates else df.columns[2]
+class_col = class_col_candidates[0] if class_col_candidates else None
 
 # Get all columns except name, code, and class
-detail_cols_all = [cn for cn in df.columns if (not isinstance(cn, str)) or (cn != name_col and cn != code_col and cn != class_col)]
+detail_cols_all = [cn for cn in df.columns if (not isinstance(cn, str)) or (((name_col is None) or cn != name_col) and (code_col is None or cn != code_col) and (class_col is None or cn != class_col))]
 
 # Create checkboxes for each column
 if detail_cols_all:
