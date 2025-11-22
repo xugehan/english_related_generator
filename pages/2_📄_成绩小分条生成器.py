@@ -100,7 +100,7 @@ with st.sidebar:
             file_name="学生成绩模板.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             help="下载此模板，按照模板格式填写学生成绩数据",
-            use_container_width=True
+            width='stretch'
         )
         st.info("📋 **模板使用说明**：  \n"
                "• 必须保持：**姓名**、**学号** 两列  \n"
@@ -162,7 +162,7 @@ try:
         # Try openpyxl as default
         df = pd.read_excel(uploaded_excel, engine="openpyxl")
 
-    st.dataframe(df.head(10), use_container_width=True)
+    st.dataframe(df.head(10), width='stretch')
     st.caption(f"共 {len(df)} 条记录，文件格式: {file_ext}")
 except Exception as e:
     st.error(f"读取Excel文件失败: {str(e)}")
@@ -391,7 +391,7 @@ with col2:
                 img = Image.open(BytesIO(img_data))
 
                 # Display the preview image
-                st.image(img, caption=f"预览：{cols}列 × {actual_rows}行布局", use_container_width=True)
+                st.image(img, caption=f"预览：{cols}列 × {actual_rows}行布局", width='stretch')
                 st.caption(f"💡 实际生成时将包含 {len(df)} 条记录")
 
                 # Close PDF
@@ -417,7 +417,7 @@ with col2:
 st.markdown("---")
 
 # Generate PDF button
-if st.button("🎨 生成PDF", type="primary", use_container_width=True):
+if st.button("🎨 生成PDF", type="primary", width='stretch'):
     # Validate filename before processing
     is_valid, error_msg, final_filename = validate_filename(output_filename)
 
@@ -497,7 +497,7 @@ if st.button("🎨 生成PDF", type="primary", use_container_width=True):
                 data=pdf_data,
                 file_name=final_filename,
                 mime="application/pdf",
-                use_container_width=True
+                width='stretch',
             )
 
             # Cleanup temp files

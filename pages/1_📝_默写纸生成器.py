@@ -118,7 +118,7 @@ with col_right:
                     cols=col_num, rows=row_num, font_size=font_size,
                     padding=padding, dpi=120
                 )
-                st.image(preview_image, caption="PDF预览（第一页）", use_container_width=True)
+                st.image(preview_image, caption="PDF预览（第一页）", width='stretch')
         except Exception as e:
             st.warning(f"⚠️ 无法生成预览: {str(e)}")
             # 降级到文本预览
@@ -134,7 +134,7 @@ st.subheader("🎨 生成PDF")
 col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
 
 with col_btn2:
-    if st.button("📄 生成PDF", type="primary", use_container_width=True, disabled=(len(items) == 0)):
+    if st.button("📄 生成PDF", type="primary", width='stretch', disabled=(len(items) == 0)):
         if len(items) == 0:
             st.error("❌ 至少需要1个项目才能生成PDF")
         else:
@@ -176,7 +176,7 @@ with col_btn2:
                         data=pdf_data,
                         file_name=filename,
                         mime="application/pdf",
-                        use_container_width=True
+                        width='stretch',
                     )
 
                     # 清理临时文件

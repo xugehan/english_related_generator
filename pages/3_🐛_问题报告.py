@@ -138,7 +138,7 @@ with st.form("new_issue_form", clear_on_submit=True):
 
     col1, col2 = st.columns([1, 5])
     with col1:
-        submit_button = st.form_submit_button("🚀 提交问题", use_container_width=True)
+        submit_button = st.form_submit_button("🚀 提交问题", width='stretch')
 
     if submit_button:
         if issue_content.strip():
@@ -185,7 +185,7 @@ else:
 
             with col2:
                 if is_admin:
-                    if st.button("🗑️ 删除", key=f"delete_{issue_id}", use_container_width=True):
+                    if st.button("🗑️ 删除", key=f"delete_{issue_id}", width='stretch'):
                         if delete_issue(issue_id):
                             st.success("删除成功")
                             st.rerun()

@@ -75,7 +75,7 @@ else:
                         data=log_data,
                         file_name=log_file['文件名'],
                         mime="text/plain",
-                        use_container_width=True,
+                        width='stretch',
                         key=f"download_{log_file['文件名']}"
                     )
                 except Exception as e:
