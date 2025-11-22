@@ -20,6 +20,67 @@ st.set_page_config(
     layout="wide"
 )
 
+
+def validate_filename(filename):
+    """
+    验证文件名的合法性
+
+    Args:
+        filename: 要验证的文件名字符串
+
+    Returns:
+        tuple: (is_valid, error_message, processed_filename)
+               - is_valid: bool, 文件名是否合法
+               - error_message: str, 错误信息（如果不合法）
+               - processed_filename: str, 处理后的文件名（如果合法）
+    """
+    # 去除首尾空格
+    filename = filename.strip()
+
+    # Check if filename is empty
+    if not filename:
+        return False, "❌ 请指定输出文件名", None
+
+    # Remove .pdf extension temporarily for validation
+    filename_without_ext = filename
+    if filename.lower().endswith('.pdf'):
+        filename_without_ext = filename[:-4]
+
+    # Check if filename is just a dot or empty after removing extension
+    if not filename_without_ext or filename_without_ext == '.':
+        return False, "❌ 文件名不能为空或只包含一个点", None
+
+    # Check for illegal characters in filename
+    # Windows: < > : " / \ | ? *
+    # macOS/Linux: / (null character is also illegal but hard to type)
+    illegal_chars = ['<', '>', ':', '"', '/', '\\', '|', '?', '*']
+    found_illegal = [char for char in illegal_chars if char in filename_without_ext]
+    if found_illegal:
+        error_msg = f"❌ 文件名包含非法字符: {', '.join(found_illegal)}\n\n💡 文件名不能包含以下字符: < > : \" / \\ | ? *"
+        return False, error_msg, None
+
+    # Check if filename starts or ends with dot or space
+    if filename_without_ext.startswith('.'):
+        return False, "❌ 文件名不能以点(.)开头", None
+
+    if filename_without_ext.endswith('.') or filename_without_ext.endswith(' '):
+        return False, "❌ 文件名不能以点(.)或空格结尾", None
+
+    # Check for Windows reserved names
+    reserved_names = ['CON', 'PRN', 'AUX', 'NUL', 'COM1', 'COM2', 'COM3', 'COM4',
+                      'COM5', 'COM6', 'COM7', 'COM8', 'COM9', 'LPT1', 'LPT2',
+                      'LPT3', 'LPT4', 'LPT5', 'LPT6', 'LPT7', 'LPT8', 'LPT9']
+    if filename_without_ext.upper() in reserved_names:
+        return False, f"❌ '{filename_without_ext}' 是系统保留名称，不能用作文件名", None
+
+    # Ensure filename ends with .pdf
+    final_filename = filename
+    if not final_filename.lower().endswith('.pdf'):
+        final_filename += '.pdf'
+
+    return True, None, final_filename
+
+
 st.title("📄 学生成绩小分条生成器")
 st.markdown("---")
 
@@ -169,8 +230,14 @@ with col1:
 
     card_title = st.text_input(
         "卡片标题",
-        value="期中英语",
+        value="",
         help="显示在每个卡片右上角的标题"
+    )
+
+    output_filename = st.text_input(
+        "输出文件名",
+        value="",
+        help="生成的PDF文件名（需要包含.pdf后缀）"
     )
 
     orientation = st.radio(
@@ -351,6 +418,13 @@ st.markdown("---")
 
 # Generate PDF button
 if st.button("🎨 生成PDF", type="primary", use_container_width=True):
+    # Validate filename before processing
+    is_valid, error_msg, final_filename = validate_filename(output_filename)
+
+    if not is_valid:
+        st.error(error_msg)
+        st.stop()
+
     with st.spinner("正在生成PDF，请稍候..."):
         try:
             # Check if user selected any columns
@@ -417,10 +491,11 @@ if st.button("🎨 生成PDF", type="primary", use_container_width=True):
             )
 
             st.success("✅ PDF生成成功！")
+
             st.download_button(
                 label="⬇️ 下载PDF文件",
                 data=pdf_data,
-                file_name="学生成绩小分条.pdf",
+                file_name=final_filename,
                 mime="application/pdf",
                 use_container_width=True
             )
